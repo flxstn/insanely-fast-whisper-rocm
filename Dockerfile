@@ -1,5 +1,5 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10-slim
+# Use an official ROCm Pytorch runtime as a parent image
+FROM rocm/pytorch:rocm7.1.1_ubuntu22.04_py3.10_pytorch_release_2.9.1
 
 LABEL org.opencontainers.image.source https://github.com/beecave-homelab/insanely-fast-whisper-rocm
 
@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=off
 ENV TZ=Europe/Amsterdam
 ENV ROCM_PATH=/opt/rocm
-ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
+# ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
 
 # Install specific packages using pip
 RUN apt-get update -y && apt-get upgrade -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \ 
@@ -20,12 +20,11 @@ RUN apt-get update -y && apt-get upgrade -y && DEBIAN_FRONTEND=noninteractive ap
 WORKDIR /app
 
 # Copy requirements file for installing dependencies
-# COPY requirements-rocm-v6-4-1.txt .
-COPY requirements-rocm-v7-0.txt .
+COPY requirements-rocm-v7-1.txt .
 COPY .python-version .
 
 # Install project dependencies using pip
-RUN pip install --no-cache-dir -r requirements-rocm-v7-0.txt
+RUN pip install --no-cache-dir -r requirements-rocm-v7-1.txt
 
 # Copy the OpenAPI spec file
 COPY openapi.yaml /app/
