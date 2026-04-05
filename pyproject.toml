@@ -90,6 +90,13 @@ verify_ssl = true
 type = "find_links"
 include_packages = ["torch", "torchaudio", "onnxruntime-rocm", "pytorch-triton-rocm", "triton"]
 
+[[tool.pdm.source]]
+name = "rocm-wheels-7.1"
+url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.1/"
+verify_ssl = true
+type = "find_links"
+include_packages = ["torch", "torchaudio", "onnxruntime-rocm", "pytorch-triton-rocm", "triton"]
+
 
 [project.optional-dependencies]
 dev = [
@@ -102,7 +109,7 @@ dev = [
     "interrogate>=1.7.0",
 ]
 
-# Should allow version from rocm-wheels-6.4.1 and rocm-wheels-7.0
+# Should allow version from rocm-wheels-6.4.1, rocm-wheels-7.0, and rocm-wheels-7.1
 rocm-6-4-1 = [
     # "torch==2.7.1+rocm6.4.1",
     "torch==2.6.0+rocm6.4.1.git1ded221d",
@@ -117,6 +124,12 @@ rocm-7-0 = [
     "torchaudio==2.8.0+rocm7.0.0.git6e1c7fe9",
     "onnxruntime-rocm==1.22.1",
     "pytorch-triton-rocm==3.4.0",
+]
+rocm-7-1 = [
+    "torch>=2.9.0,<2.10.0",
+    "torchaudio>=2.9.0,<2.10.0",
+    "onnxruntime-rocm",
+    "triton>=3.2.0,<=3.6.0",
 ]
 
 # Tool configurations for development
