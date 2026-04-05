@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import gc
 import logging
+import os
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -143,15 +144,18 @@ class HuggingFaceBackend(ASRBackend):  # pylint: disable=too-few-public-methods
                 "use_safetensors": True,
             }
 
-            # For newer transformers, SDPA is fast. On ROCm it sometimes fails at
-            # runtime on certain stacks; per user preference, try SDPA first and
-            # fallback to 'eager' only if needed. Keep SDPA on CUDA.
+            # For newer transformers, SDPA is fast. On ROCm it has proven unstable
+            # at runtime on some stacks, so default to eager there unless the user
+            # explicitly overrides it.
             if self.effective_device != "cpu":
                 is_rocm = getattr(torch.version, "hip", None) is not None
                 if is_rocm:
-                    model_load_kwargs["attn_implementation"] = "sdpa"
+                    model_load_kwargs["attn_implementation"] = os.getenv(
+                        "IFW_ROCM_ATTN_IMPLEMENTATION", "eager"
+                    )
                     logger.info(
-                        "ROCm detected; trying attn_implementation='sdpa' first"
+                        "ROCm detected; using attn_implementation=%r",
+                        model_load_kwargs["attn_implementation"],
                     )
                 else:
                     model_load_kwargs["attn_implementation"] = "sdpa"
@@ -176,14 +180,15 @@ class HuggingFaceBackend(ASRBackend):  # pylint: disable=too-few-public-methods
                             config={"model": self.config.model_name},
                         ) from e_first
 
-                    # On ROCm, fallback to 'eager' if SDPA attempt fails at load.
+                    # On ROCm, fallback to 'eager' if a non-eager choice fails at load.
                     if (
                         getattr(torch.version, "hip", None) is not None
-                        and model_load_kwargs.get("attn_implementation") == "sdpa"
+                        and model_load_kwargs.get("attn_implementation") != "eager"
                     ):
                         logger.warning(
-                            "Model load with SDPA failed on ROCm, retrying with "
+                            "Model load with %r failed on ROCm, retrying with "
                             "attn_implementation='eager': %s",
+                            model_load_kwargs.get("attn_implementation"),
                             str(e_first),
                         )
                         model_load_kwargs["attn_implementation"] = "eager"
@@ -226,6 +231,22 @@ class HuggingFaceBackend(ASRBackend):  # pylint: disable=too-few-public-methods
                         )
                 else:
                     logger.debug("Unable to determine ASR model device")
+
+                if self.effective_device != "cpu" and str(model_device) == "cpu":
+                    logger.info("Moving ASR model to requested device: %s", self.effective_device)
+                    model = model.to(self.effective_device)
+                    model_device = getattr(model, "device", None)
+                    if model_device is None:
+                        model_parameters = getattr(model, "parameters", None)
+                        if callable(model_parameters):
+                            try:
+                                first_param = next(iter(model_parameters()))
+                            except (TypeError, StopIteration):
+                                first_param = None
+                            if first_param is not None:
+                                model_device = getattr(first_param, "device", None)
+                    if model_device is not None:
+                        logger.info("ASR model moved to device: %s", model_device)
                 tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
                 feature_extractor = AutoFeatureExtractor.from_pretrained(
                     self.config.model_name
