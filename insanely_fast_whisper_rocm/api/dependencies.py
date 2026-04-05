@@ -16,6 +16,7 @@ from insanely_fast_whisper_rocm.utils import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_CHUNK_LENGTH,
     DEFAULT_DEVICE,
+    DEFAULT_DTYPE,
     DEFAULT_MODEL,
     FileHandler,
     constants,
@@ -26,7 +27,7 @@ def get_asr_pipeline(
     model: str = DEFAULT_MODEL,
     device: str = DEFAULT_DEVICE,
     batch_size: int = DEFAULT_BATCH_SIZE,
-    dtype: str = "float16",
+    dtype: str = DEFAULT_DTYPE,
     model_chunk_length: int = DEFAULT_CHUNK_LENGTH,
 ) -> Generator[WhisperPipeline, None, None]:
     """Dependency to provide configured ASR pipeline.
@@ -71,7 +72,7 @@ def get_asr_pipeline(
     backend_config = HuggingFaceBackendConfig(
         model_name=_normalize(model, DEFAULT_MODEL),
         device=_normalize(device, DEFAULT_DEVICE),
-        dtype=_normalize(dtype, "float16"),
+        dtype=_normalize(dtype, DEFAULT_DTYPE),
         batch_size=int(_normalize(batch_size, DEFAULT_BATCH_SIZE)),
         chunk_length=int(_normalize(model_chunk_length, DEFAULT_CHUNK_LENGTH)),
         progress_group_size=constants.DEFAULT_PROGRESS_GROUP_SIZE,
