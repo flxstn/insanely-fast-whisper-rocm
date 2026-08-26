@@ -1,53 +1,36 @@
-# Use an official ROCm Pytorch runtime as a parent image
-FROM rocm/pytorch:rocm7.2.1_ubuntu24.04_py3.12_pytorch_release_2.9.1
+# Homelab gfx1151 base: ROCm 7.2.1 + PyTorch 2.9.1 with PYTORCH_ROCM_ARCH=gfx1151
+FROM homelab/rocm7-gfx1151:stablenightly
 
-LABEL org.opencontainers.image.source https://github.com/beecave-homelab/insanely-fast-whisper-rocm
+LABEL org.opencontainers.image.source=https://github.com/beecave-homelab/insanely-fast-whisper-rocm
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=off
-ENV TZ=Europe/Amsterdam
-ENV ROCM_PATH=/opt/rocm
-# ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=off \
+    TZ=Europe/Amsterdam \
+    ROCM_PATH=/opt/rocm \
+    PYTORCH_ROCM_ARCH=gfx1151 \
+    HIP_VISIBLE_DEVICES=0 \
+    GRADIO_SERVER_NAME=0.0.0.0
 
-# Install specific packages using pip
-RUN apt-get update -y && apt-get upgrade -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \ 
-    ffmpeg \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy requirements file for installing dependencies
 COPY requirements-rocm-v7-2.txt .
 COPY .python-version .
 
-# Install project dependencies using pip
-RUN pip install --no-cache-dir -r requirements-rocm-v7-2.txt
+# Keep the base image's ROCm PyTorch; this requirements file does not pin torch.
+RUN python -m pip install --no-cache-dir -r requirements-rocm-v7-2.txt
 
-# Copy the OpenAPI spec file
 COPY openapi.yaml /app/
-
-# Copy the application source code
-# This is needed for `pdm install` to build and install the local package.
-# It assumes your main package source is in the 'insanely_fast_whisper_rocm' directory.
-# Copy the application source code and project metadata
 COPY pyproject.toml /app/
 COPY ./insanely_fast_whisper_rocm /app/insanely_fast_whisper_rocm/
 
-# Install the local package itself
-RUN pip install --no-cache-dir .
+RUN python -m pip install --no-cache-dir --no-deps .
 
-# After `pip install .`, the package `insanely_fast_whisper_rocm` and its CLI/modules
-# should be available in the Python environment.
-
-# Added in case Gradio is used and needs to be accessible; remove if not needed.
-ENV GRADIO_SERVER_NAME="0.0.0.0"
-
-# Expose default internal ports (API/WebUI). Actual bindings are controlled by Compose.
 EXPOSE 8888
 EXPOSE 7860
 
-# Use the package entrypoint so host/port are controlled by env vars (API_HOST/API_PORT).
 CMD ["insanely-fast-whisper-rocm"]

@@ -291,7 +291,10 @@ def test_initialize_pipeline_rocm_fallback_to_eager(tmp_path: pathlib.Path) -> N
         return mock_model
 
     # Simulate ROCm with explicit SDPA override
-    with patch.dict("os.environ", {"IFW_ROCM_ATTN_IMPLEMENTATION": "sdpa"}):
+    with patch(
+        "insanely_fast_whisper_rocm.core.asr_backend.ROCM_ATTN_IMPLEMENTATION",
+        "sdpa",
+    ):
         with patch("torch.version.hip", "5.7", create=True):
             with patch(
                 "insanely_fast_whisper_rocm.core.asr_backend.AutoModelForSpeechSeq2Seq.from_pretrained",

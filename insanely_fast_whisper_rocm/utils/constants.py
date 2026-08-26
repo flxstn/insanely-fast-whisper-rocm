@@ -141,6 +141,9 @@ DEFAULT_TIMESTAMP_TYPE: Literal["chunk", "word"] = _TIMESTAMP_TYPE_ENV
 
 DEFAULT_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "None")  # None means auto-detect
 DEFAULT_DTYPE = os.getenv("WHISPER_DTYPE", "float16")  # Data type for model inference
+# ROCm attention kernel. "eager" is the stable default; "sdpa" can be set to
+# opt back into scaled_dot_product_attention on stacks where it is reliable.
+ROCM_ATTN_IMPLEMENTATION = os.getenv("IFW_ROCM_ATTN_IMPLEMENTATION", "eager")
 DEFAULT_BETTER_TRANSFORMER = (
     os.getenv("WHISPER_BETTER_TRANSFORMER", "false").lower() == "true"
 )  # Use BetterTransformer

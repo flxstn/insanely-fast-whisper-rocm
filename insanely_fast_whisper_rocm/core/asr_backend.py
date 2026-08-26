@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import gc
 import logging
-import os
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -35,6 +34,7 @@ from insanely_fast_whisper_rocm.core.errors import (
 from insanely_fast_whisper_rocm.core.oom_utils import classify_oom_error
 from insanely_fast_whisper_rocm.core.progress import NoOpProgress, ProgressCallback
 from insanely_fast_whisper_rocm.core.utils import convert_device_string
+from insanely_fast_whisper_rocm.utils.constants import ROCM_ATTN_IMPLEMENTATION
 
 # Placeholder for logger, will be configured properly later
 logger = logging.getLogger(__name__)
@@ -150,9 +150,7 @@ class HuggingFaceBackend(ASRBackend):  # pylint: disable=too-few-public-methods
             if self.effective_device != "cpu":
                 is_rocm = getattr(torch.version, "hip", None) is not None
                 if is_rocm:
-                    model_load_kwargs["attn_implementation"] = os.getenv(
-                        "IFW_ROCM_ATTN_IMPLEMENTATION", "eager"
-                    )
+                    model_load_kwargs["attn_implementation"] = ROCM_ATTN_IMPLEMENTATION
                     logger.info(
                         "ROCm detected; using attn_implementation=%r",
                         model_load_kwargs["attn_implementation"],
